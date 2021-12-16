@@ -1,0 +1,255 @@
+<agent xmlns="http://jadex.sourceforge.net/jadex" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jadex.sourceforge.net/jadex 
+					http://jadex.sourceforge.net/jadex-0.96.xsd" name="tablero" package="src.tablero">
+	<imports>
+		<import>jadex.runtime.*</import>
+		<import>jadex.planlib.*</import>
+		<import>jadex.util.*</import>
+		<import>jadex.adapter.fipa.*</import>
+		<import>java.util.logging.*</import>
+		<import>java.util.*</import>
+		<import>tablero.plans.*</import>
+		<import>ontology.concepts.Tablero</import>
+		<import>ontology.concepts.Jugador</import>
+		<import>ontology.concepts.Carta</import>
+		<import>ontology.actions.*</import>
+		<import>ontology.predicates.*</import>
+	</imports>
+	<capabilities>
+		<capability name="dfcap" file="jadex.planlib.DF" />
+	</capabilities>
+
+	<beliefs>
+		<belief name="miTablero" class="Tablero" />
+		<beliefset name="jugadores" class="Jugador" />
+		<belief name="numJugs" class="int" />
+		<beliefset name="cartas" class="Carta" />
+		<!-- Almacena todas las creencias de banco que relacionan suiza con jugador-->
+
+	</beliefs>
+	<goals>
+		<!--Registrar el tablero-->
+		<achievegoalref name="df_register">
+			<concrete ref="dfcap.df_register" />
+		</achievegoalref>
+		<performgoal name="resolve_coup" retry="true" retrydelay="3000" exclude="never">
+			<contextcondition>
+				($beliefbase.miTablero.getGolpeDeEstado().equals(true))
+			</contextcondition>
+		</performgoal>
+		<maintaingoal name="have_president">
+			<maintaincondition>
+				($beliefbase.miTablero.getPresident() != null)
+			</maintaincondition>
+		</maintaingoal>
+		<achievegoal name="completar_jugadores">
+			<creationcondition>
+				<!-- Para simplificar vamos a empezar cuando haya 7 jugadores -->
+				($beliefbase.numJugs &lt; 7)
+			</creationcondition>
+		</achievegoal>
+		<achievegoal name="comienza_partida">
+			<creationcondition>
+				<!-- Para simplificar vamos a empezar cuando haya 7 jugadores -->
+				($beliefbase.numJugs &gt; 6)
+			</creationcondition>
+		</achievegoal>
+	</goals>
+	<plans>
+		<!-- Unirse partida protocolo-->
+		<plan name="completar_jugadores_plan">
+			<body class="completarJugadoresPlan"></body>
+			<trigger>
+				<messageevent ref="RequestUnirsePartida" />
+			</trigger>
+		</plan>
+
+		<plan name="comienza_partida_plan">
+			<body class="comienzaPartidaPlan" />
+			<trigger>
+				<goal ref="comienza_partida" />
+			</trigger>
+		</plan>
+
+		<!--Coup D'etat protocol-->
+		<plan name="wait_coup_d_etat_plan">
+			<body class="waitCoupDetatPlan"></body>
+			<trigger>
+				<messageevent ref="RequestGolpeEstadoMsg" />
+			</trigger>
+		</plan>
+		<plan name="resolve_coup_d_etat_plan">
+			<body class="resolveCoupDetatPlan" />
+			<trigger>
+				<goal ref="resolve_coup" />
+			</trigger>
+		</plan>
+		<!--Intentar asesinar protocol-->
+		<plan name="intentarAsesinar">
+			<body class="intentoAsesinatoPlan"></body>
+			<trigger>
+				<messageevent ref="RequestAsesinatoMsg" />
+			</trigger>
+		</plan>
+	</plans>
+
+	<events>
+		<!-- Unirse a la partida -->
+		<messageevent name="RequestUnirsePartida" direction="receive" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.REQUEST</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="AgreeUnirsePartida" direction="send" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.AGREE</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+			<parameter name="content-class" class="Class" direction="fixed">
+				<value>unirsePartida.class</value>
+			</parameter>
+		</messageevent>
+
+		<!--Coup D'etat protocol-->
+		<messageevent name="RequestGolpeEstadoMsg" direction="receive" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.REQUEST</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="InformGolpeEstadoMsg" direction="receive" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.INFORM_IF</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="InformIfRebeldeMsg" direction="receive" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.INFORM_IF</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+			<parameter name="content-class" class="Class" direction="fixed">
+				<value>esRebelde.class</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="AgreeGolpeEstadoMsg" direction="send" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.AGREE</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+			<parameter name="content-class" class="Class" direction="fixed">
+				<value>darGolpe.class</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="RefuseGolpeEstadoMsg" direction="send" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.REFUSE</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+			<parameter name="content-class" class="Class" direction="fixed">
+				<value>imposibilidadGolpe.class</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="QueryIfRebeldeMsg" direction="send" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.QUERY_IF</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+			<parameter name="content-class" class="Class" direction="fixed">
+				<value>esRebelde.class</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="InformResultadoGolpe" direction="send" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.INFORM</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+		</messageevent>
+
+		<!--Intentar asesinar protocol-->
+		<messageevent name="RequestAsesinatoMsg" direction="receive" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.REQUEST</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="QueryIfTieneCartaMsg" direction="receive" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.QUERY_IF</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="RefuseAsesinatoMsg" direction="send" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.REFUSE</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+			<parameter name="content-class" class="Class" direction="fixed">
+				<value>intentarAsesinar.class</value>
+			</parameter>
+		</messageevent>
+
+		<messageevent name="AgreeAsesinatoMsg" direction="send" type="fipa">
+			<parameter name="performative" class="String" direction="fixed">
+				<value>SFipa.AGREE</value>
+			</parameter>
+			<parameter name="language" class="String" direction="fixed">
+				<value>SFipa.NUGGETS_XML</value>
+			</parameter>
+			<parameter name="content-class" class="Class" direction="fixed">
+				<value>intentarAsesinar.class</value>
+			</parameter>
+		</messageevent>
+
+	</events>
+	<configurations>
+		<configuration name="default">
+			<beliefs>
+				<initialbelief ref="numJugs">
+					<fact>0</fact>
+				</initialbelief>
+			</beliefs>
+			<goals>
+				<initialgoal ref="completar_jugadores"></initialgoal>
+				<initialgoal ref="df_register">
+					<parameter ref="description">
+						<value>SFipa.createAgentDescription(null,SFipa.createServiceDescription(null,"tablero", null))</value>
+					</parameter>
+				</initialgoal>
+			</goals>
+		</configuration>
+	</configurations>
+</agent>

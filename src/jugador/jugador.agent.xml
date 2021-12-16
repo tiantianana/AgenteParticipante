@@ -1,0 +1,222 @@
+<agent xmlns="http://jadex.sourceforge.net/jadex" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jadex.sourceforge.net/jadex 
+	                    http://jadex.sourceforge.net/jadex-0.96.xsd" name="jugador" package="src.jugador">
+    <imports>
+        <import>jugador.beliefs.AgentLocation</import>
+        <import>jugador.beliefs.AgentEnemigo</import>
+        <import>jadex.runtime.*</import>
+        <import>jadex.planlib.*</import>
+        <import>jadex.util.*</import>
+        <import>jadex.adapter.fipa.*</import>
+        <import>java.util.logging.*</import>
+        <import>java.util.*</import>
+        <import>jugador.plans.*</import>
+        <import>ontology.actions.*</import>
+        <import>ontology.predicates*</import>
+        <import>ontology.concepts.Tablero</import>
+		<import>ontology.concepts.Jugador</import>
+		<import>ontology.concepts.Carta</import>
+    </imports>
+
+    <!--El tablero busca jugadores-->
+    <capabilities>
+        <capability name="dfcap" file="jadex.planlib.DF" />
+    </capabilities>
+
+    <beliefs>
+        <!-- El propio jugador -->
+        <belief name="myself" class="Jugador"/>
+        <!-- El tablero en el que el jugador esta jugando -->
+        <belief name="miTablero" class="Tablero"/>
+        <!-- El jugador tiene que tener una base de datos sobre el resto de los jugadores -->
+        <beliefset name="jugadores" class="Jugador" />
+        <!-- Guardamos los valores que ya hemos intentado para no volver a intentarlos de nuevo -->
+        <beliefset name="localizaciones" class="AgentLocation" />
+        <!-- Cartas que tiene el jugador en la mano -->
+        <beliefset name="cartas" class="Carta" />
+        <belief name="playerWinning" class="Jugador"/>
+        <belief name="enemigo" class="AgentEnemigo"/>
+    </beliefs>
+
+    <goals>
+        <achievegoal name="comenzarPartida">
+            <creationcondition>($beliefbase.miTablero!=null)</creationcondition>
+            <contextcondition>($beliefbase.miTablero.getFaseActual() == "inicioPartida")</contextcondition>
+        </achievegoal>
+        <achievegoal name="intentar_asesinar">
+            <!-- Estamos en la fase de asesinato -->
+            <creationcondition>($belief.myTablero.getFaseActual() == "IntentarAsesinar")</creationcondition>
+            <!--Decision del jugador, intenta asesinar cuando no va ganando-->
+            <contextcondition>(!$belief.playerWinning == $belief.myself)</contextcondition>
+        </achievegoal>
+        <achievegoal name="intento_golpe_estado">
+            <!-- Estamos en la fase de golpe de estado -->
+            <creationcondition>($belief.myTablero.getFaseActual() == "IntentarGolpe")</creationcondition>
+            <!-- hay presidente -->
+            <contextcondition>(!$belief.myTablero.getPresident() != null)</contextcondition>
+        </achievegoal>
+        <!-- Encuentra al tablero -->
+        <achievegoalref name="df_search">
+            <concrete ref="dfcap.df_search" />
+        </achievegoalref>
+        <achievegoalref name="df_register">
+			<concrete ref="dfcap.df_register"/>
+		</achievegoalref>
+    </goals>
+
+    <plans>
+        
+        <plan name="requestJoin">
+            <body class="requestJoinPlan" />
+            <trigger>
+                <messageevent ref="RequestUnirsePartida" />
+            </trigger>
+            <precondition>$beliefbase.miTablero!=null</precondition>
+        </plan>
+        <plan name="waitUnirsePartida">
+            <body class="waitUnirsePartidaPlan" />
+            <trigger>
+                <messageevent ref="RequestUnirsePartida" />
+            </trigger>
+        </plan>
+        <plan name="intentoAsesinato">
+            <body class="intentoAsesinatoPlan"></body>
+            <trigger>
+                <messageevent ref="RequestAsesinatoMsg" />
+                <goal ref="intentar_asesinar" />
+            </trigger>
+        </plan>
+        <plan name="waitIntentarAsesinar">
+            <body class="waitIntentarAsesinarPlan"></body>
+            <trigger>
+                <messageevent ref="AgreeAsesinatoMsg" />
+            </trigger>
+        </plan>
+        <plan name="golpeEstado">
+            <body class="golpeEstadoPlan"></body>
+            <trigger>
+                <messageevent ref="RequestGolpeEstadoMsg" />
+                <goal ref="intento_golpe_estado" />
+            </trigger>
+        </plan>
+        <plan name="waitGolpeEstado">
+            <body class="waitGolpeEstadoPlan"></body>
+            <trigger>
+                <messageevent ref="AgreeGolpeEstadoMsg" />
+            </trigger>
+        </plan>
+    </plans>
+    <events>
+        <!-- Unirse partida -->
+        <messageevent name="RequestUnirsePartida" direction="send" type="fipa">
+            <parameter name="performative" class="String" direction="fixed">
+                <value>SFipa.REQUEST</value>
+            </parameter>
+            <parameter name="language" class="String" direction="fixed">
+                <value>SFipa.NUGGETS_XML</value>
+            </parameter>
+        </messageevent>
+
+        <messageevent name="AgreeUnirsePartida" direction="receive" type="fipa">
+            <parameter name="performative" class="String" direction="fixed">
+                <value>SFipa.AGREE</value>
+            </parameter>
+            <parameter name="language" class="String" direction="fixed">
+                <value>SFipa.NUGGETS_XML</value>
+            </parameter>
+            <parameter name="content-class" class="Class" direction="fixed">
+                <value>unirsePartida.class</value>
+            </parameter>
+        </messageevent>
+
+        <messageevent name="RefuseUnirsePartida" direction="receive" type="fipa">
+            <parameter name="performative" class="String" direction="fixed">
+                <value>SFipa.AGREE</value>
+            </parameter>
+            <parameter name="language" class="String" direction="fixed">
+                <value>SFipa.NUGGETS_XML</value>
+            </parameter>
+        </messageevent>
+
+        <!--Intentar asesinar protocol-->
+        <messageevent name="RequestAsesinatoMsg" direction="send" type="fipa">
+            <parameter name="performative" class="String" direction="fixed">
+                <value>SFipa.REQUEST</value>
+            </parameter>
+            <parameter name="language" class="String" direction="fixed">
+                <value>SFipa.NUGGETS_XML</value>
+            </parameter>
+        </messageevent>
+
+        <messageevent name="AgreeAsesinatoMsg" direction="receive" type="fipa">
+            <parameter name="performative" class="String" direction="fixed">
+                <value>SFipa.AGREE</value>
+            </parameter>
+            <parameter name="language" class="String" direction="fixed">
+                <value>SFipa.NUGGETS_XML</value>
+            </parameter>
+            <parameter name="content-class" class="Class" direction="fixed">
+                <value>intentarAsesinar.class</value>
+            </parameter>
+        </messageevent>
+
+        <messageevent name="RefuseAsesinatoMsg" direction="receive" type="fipa">
+            <parameter name="performative" class="String" direction="fixed">
+                <value>SFipa.REFUSE</value>
+            </parameter>
+            <parameter name="language" class="String" direction="fixed">
+                <value>SFipa.NUGGETS_XML</value>
+            </parameter>
+            <parameter name="content-class" class="Class" direction="fixed">
+                <value>imposibilidadAsesinato.class</value>
+            </parameter>
+        </messageevent>
+
+        <!--Golpe Estado protocol-->
+        <messageevent name="RequestGolpeEstadoMsg" direction="send" type="fipa">
+            <parameter name="performative" class="String" direction="fixed">
+                <value>SFipa.REQUEST</value>
+            </parameter>
+            <parameter name="language" class="String" direction="fixed">
+                <value>SFipa.NUGGETS_XML</value>
+            </parameter>
+        </messageevent>
+
+        <messageevent name="AgreeGolpeEstadoMsg" direction="receive" type="fipa">
+            <parameter name="performative" class="String" direction="fixed">
+                <value>SFipa.AGREE</value>
+            </parameter>
+            <parameter name="language" class="String" direction="fixed">
+                <value>SFipa.NUGGETS_XML</value>
+            </parameter>
+            <parameter name="content-class" class="Class" direction="fixed">
+                <value>darGolpe.class</value>
+            </parameter>
+        </messageevent>
+
+        <messageevent name="RefuseGolpeEstadoMsg" direction="receive" type="fipa">
+            <parameter name="performative" class="String" direction="fixed">
+                <value>SFipa.REFUSE</value>
+            </parameter>
+            <parameter name="language" class="String" direction="fixed">
+                <value>SFipa.NUGGETS_XML</value>
+            </parameter>
+            <parameter name="content-class" class="Class" direction="fixed">
+                <value>imposibilidadGolpe.class</value>
+            </parameter>
+        </messageevent>
+    </events>
+
+    <configurations>
+        <configuration name="jugador">
+            <goals>
+                <initialgoal ref="df_register">
+                    <parameter ref="description">
+                        <value> 
+					SFipa.createAgentDescription(null,SFipa.createServiceDescription("jugadores","jugador", null))</value>
+                    </parameter>
+                </initialgoal>
+                <initialgoal ref="comenzarPartida" />
+            </goals>
+        </configuration>
+    </configurations>
+</agent>
