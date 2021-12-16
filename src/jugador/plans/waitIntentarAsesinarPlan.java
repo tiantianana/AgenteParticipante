@@ -40,11 +40,9 @@ public class waitIntentarAsesinarPlan extends Plan {
 
             // Eliminamos los antiguos valores del asesino y el asesinado
             getBeliefbase().getBeliefSet("jugadores").removeFact(target);
-            getBeliefbase().getBeliefSet("jugadores").removeFact(me);
-
-            // Añadimos los valores obtenidos por el tablero
             getBeliefbase().getBeliefSet("jugadores").addFact(action.getAsesino());
-            getBeliefbase().getBeliefSet("jugadores").addFact(action.getObjetivo());
+            getBeliefbase().getBelief("mysef").setFact(me);
+
 
         } else if (imp != null) {
 
