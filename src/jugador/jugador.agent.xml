@@ -40,17 +40,18 @@
     <goals>
         <achievegoal name="comenzarPartida">
             <creationcondition>($beliefbase.miTablero!=null)</creationcondition>
-            <contextcondition>($beliefbase.miTablero.getFaseActual() == "inicioPartida")</contextcondition>
+             <!--
+            <contextcondition>($beliefbase.miTablero.getFaseActual() == "inicioPartida")</contextcondition> -->
         </achievegoal>
         <achievegoal name="intentar_asesinar">
-            <!-- Estamos en la fase de asesinato -->
-            <creationcondition>($belief.myTablero.getFaseActual() == "IntentarAsesinar")</creationcondition>
+            <!-- Estamos en la fase de asesinato 
+            <creationcondition>($belief.myTablero.getFaseActual() == "IntentarAsesinar")</creationcondition> -->
             <!--Decision del jugador, intenta asesinar cuando no va ganando-->
             <contextcondition>(!$belief.playerWinning == $belief.myself)</contextcondition>
         </achievegoal>
         <achievegoal name="intento_golpe_estado">
-            <!-- Estamos en la fase de golpe de estado -->
-            <creationcondition>($belief.myTablero.getFaseActual() == "IntentarGolpe")</creationcondition>
+            <!-- Estamos en la fase de golpe de estado 
+            <creationcondition>($belief.myTablero.getFaseActual() == "IntentarGolpe")</creationcondition> -->
             <!-- hay presidente -->
             <contextcondition>(!$belief.myTablero.getPresident() != null)</contextcondition>
         </achievegoal>
