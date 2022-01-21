@@ -29,7 +29,6 @@ ejecutar.bat
 ```
 
 ### Nota
-La ejecución del programa no es completa, pues solo se han implementado los protocolos necesarios para la realización de la práctica.
+En el archivo ontologias y protocolos.pdf se especifica con más detalle cada protocolo. En el programa creado tan solo se implementan 3, por tanto, 
+la ejecución del programa no es completa. 
 
-### Información complementaria
-En el archivo ontologias y protocolos.pdf se especifica con más detalle cada protocolo. En el programa creado tan solo se implementan 3.
