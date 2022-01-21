@@ -27,8 +27,9 @@ compilar.bat
 ```
 ejecutar.bat
 ```
+<br/>
 
-### Nota
+**Nota** <br/>
 En el archivo ontologias y protocolos.pdf se especifica con más detalle cada protocolo. En el programa creado tan solo se implementan 3, por tanto, 
 la ejecución del programa no es completa. 
 
